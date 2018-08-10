@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination;
+use App\Log;
+use App\Notification;
 class TasksController extends Controller {
     /*
      * Add Task
@@ -47,6 +49,12 @@ class TasksController extends Controller {
             $task->status = $request->status;
             $task->assign = $request->assign;
             $task->user_id = $user->id;
+
+            $notification = new Notification();
+            $notification->user_id = $task->assign;
+            $notification->message = $user->name . ' has assigned you a task';
+            $notification->save();
+
             $task->save();
 
             return $this->returnSuccess($task);
@@ -63,6 +71,20 @@ class TasksController extends Controller {
                 return $this->returnBadRequest("You can edit just own task");
             }
 
+            $status = '';
+            switch ($task->status){
+                case 0 : $status = 'Incomplete' ; break;
+                case 1 : $status = 'Progress' ; break;
+                case 2 : $status = 'Finished'; break;
+            }
+
+            $log = new Log([
+                'task_id' => $id,
+                'user_id' => $task->user_id,
+                'type' => $user->role_id,
+                'old_value' => 'Status : ' . $status . ' . Assign to ' . $task->assign
+                ]);
+
             if($request->has('name'))
             {
                 $task->name= $request->name;
@@ -78,11 +100,27 @@ class TasksController extends Controller {
 
             if($request->has('assign')){
                 $task->assign= $request->assign;
+
+                $notification = new Notification();
+                $notification->user_id = $task->assign;
+                $notification->message = $user->name . ' has assigned you a task';
+                $notification->save();
+            }
+            $status = '';
+            switch ($task->status){
+                case 0 : $status = 'Incomplete' ; break;
+                case 1 : $status = 'Progress' ; break;
+                case 2 : $status = 'Finished'; break;
+            }
+            $log->new_value= 'Status : ' . $status . ' . Assign to ' . $task->assign;
+            $log->save();
+
+            if($task->save()) {
+                return $this->returnSuccess($task);
             }
 
-            $task->save();
 
-            return $this->returnSuccess($task);
+            return $this->returnError('Error to save');
 
         }catch (\Exception $e) {
             return $this->returnError($e->getMessage());

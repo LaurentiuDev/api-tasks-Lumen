@@ -48,12 +48,17 @@ $router->group(['namespace' => API_VERSION, 'prefix' => API_VERSION, 'middleware
             $router->delete('/{id}', ['uses' => 'AdminController@deleteUser']);
         });
     });
+
     $router->get('/getTasks',['uses' => 'TasksController@getTasks']);
     $router->post('/add-task',['uses' => 'TasksController@addTask']);
     $router->patch('/edit-task/{id}',['uses' => 'TasksController@editTask']);
+
     $router->group(['prefix' => 'admin', 'middleware' => 'admin'], function () use ($router) {
-        //Aici am prefix admin adica , /admin
         $router->delete('/delete-task/{id}',['uses' => 'TasksController@deleteTask']);
+        $router->delete('/deleteComment/{id}',['uses' => 'UserController@deleteComment']);
     });
+
+    $router->post('/addComment/{id}',['uses' => 'UserController@addComment']);
+    $router->patch('/editComment/{id}',['uses' => 'UserController@editComment']);
 
 });

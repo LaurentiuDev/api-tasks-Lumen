@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\LinkReset;
+use App\Task;
+use App\Comment;
 /**
  * Class UserController
  *
@@ -219,5 +221,72 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage());
         }
+    }
+
+    public function addComment($id,Request $request) {
+        $rules = [
+            'comment'     => 'required|min:1'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ( ! $validator->passes()) {
+            return $this->returnBadRequest();
+        }
+        $task = Task::find($id);
+
+        $comment = new Comment([
+            'user_id' => $task->user_id,
+            'task_id' => $id,
+            'comment' =>$request->comment
+        ]);
+
+        if($comment->save())
+        {
+            return $this->returnSuccess($comment);
+        }
+
+        return $this->returnError('An error occured');
+
+    }
+    public function editComment($id,Request $request) {
+        $rules = [
+            'comment'     => 'required|min:1'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ( ! $validator->passes()) {
+            return $this->returnBadRequest();
+        }
+
+        $comment = Comment::find($id);
+
+        $user = $this->getUserLog();
+
+        if($comment->user_id !== $user->id && $user->role_id === 2) {
+            return $this->returnError('You cannot edit this comment');
+        }
+
+        $comment->comment = $request->comment;
+
+        if($comment->save()) {
+            return $this->returnSuccess($comment);
+        }
+
+        return $this->returnError('An error occured');
+
+    }
+    public function deleteComment($id,Request $request) {
+        $comment = Comment::find($id);
+
+        if(!$comment) {
+            return $this->returnNotFound('Comment not found');
+        }
+
+        if($comment->delete()){
+            return $this->returnSuccess($comment);
+        }
+
+        return $this->returnError('An error occured');
     }
 }
